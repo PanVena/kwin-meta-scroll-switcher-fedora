@@ -1,0 +1,18 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Local user"
+            }
+        ],
+        "Category": "Window Management",
+        "Description": "Switch virtual desktops by holding Meta and scrolling the mouse wheel",
+        "EnabledByDefault": false,
+        "Id": "kwin_meta_scroll_desktop",
+        "License": "GPL",
+        "Name": "Meta+Scroll Desktop Switch"
+    },
+    "org.kde.kwin.effect": {
+        "exclusiveGroup": ""
+    }
+}
