@@ -12,6 +12,7 @@
         "License": "GPL",
         "Name": "Meta+Scroll Desktop Switch"
     },
+    "X-KDE-ConfigModule": "kwin_meta_scroll_desktop_config",
     "org.kde.kwin.effect": {
         "exclusiveGroup": ""
     }
