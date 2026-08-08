@@ -20,7 +20,7 @@ Install the build dependencies:
 ```bash
 sudo apt install cmake extra-cmake-modules kwin-dev qt6-base-dev qt6-declarative-dev \
     libkf6coreaddons-dev libkf6config-dev libkf6globalaccel-dev libkf6i18n-dev \
-    libdrm-dev libepoxy-dev libwayland-dev
+    libkf6kcmutils-dev libdrm-dev libepoxy-dev libwayland-dev
 ```
 
 Then build:
@@ -52,6 +52,15 @@ qdbus6 org.kde.KWin /KWin reconfigure
 ## Usage
 
 Hold <kbd>Meta</kbd> and scroll over any window (not just the desktop background) to switch virtual desktops.
+
+## Configuration
+
+By default, scrolling past the last desktop wraps around to the first (and vice versa). This can be turned off from the effect's settings — click the gear icon next to "Meta+Scroll Desktop Switch" in **System Settings → Apps → Desktop Effects** and uncheck "Wrap around when reaching the first or last desktop", or from a terminal:
+
+```bash
+kwriteconfig6 --file kwinrc --group Effect-kwin_meta_scroll_desktop --key WrapAroundDesktops false
+qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect kwin_meta_scroll_desktop
+```
 
 ## Uninstalling
 
