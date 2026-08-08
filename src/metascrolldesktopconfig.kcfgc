@@ -1,0 +1,5 @@
+File=metascrolldesktop.kcfg
+ClassName=MetaScrollDesktopConfig
+NameSpace=KWin
+Singleton=true
+Mutators=true
