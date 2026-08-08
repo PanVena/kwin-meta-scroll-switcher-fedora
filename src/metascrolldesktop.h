@@ -13,6 +13,8 @@ public:
     MetaScrollDesktopEffect();
 
     static bool supported();
+
+    void reconfigure(ReconfigureFlags flags) override;
 };
 
 } // namespace KWin
