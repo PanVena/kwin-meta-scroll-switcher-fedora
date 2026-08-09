@@ -4,6 +4,26 @@ A KWin effect plugin that switches virtual desktops by holding <kbd>Meta</kbd> a
 
 KDE Plasma ships a hardcoded <kbd>Meta</kbd>+<kbd>Alt</kbd>+scroll shortcut for this ([`src/virtualdesktops.cpp`](https://invent.kde.org/plasma/kwin/-/blob/master/src/virtualdesktops.cpp)), and it isn't configurable from System Settings. [KDE bug 510707](https://bugs.kde.org/show_bug.cgi?id=510707) tracks making it configurable upstream, but as of writing nobody has picked it up. This plugin adds the <kbd>Meta</kbd>-only binding as a separate, independent effect — it doesn't touch or replace the existing shortcut.
 
+## Quick Install
+
+Clone the repo and run the installer — it handles dependencies, the build, and activating the plugin in one shot:
+
+```bash
+git clone https://github.com/R0h1tAnand/kwin-meta-scroll-switcher.git
+cd kwin-meta-scroll-switcher
+bash install.sh
+```
+
+The script also accepts:
+
+| Command | Effect |
+|---|---|
+| `bash install.sh` | Install deps, build, install & enable the plugin |
+| `bash install.sh --enable` | Enable without rebuilding |
+| `bash install.sh --disable` | Disable the effect in KWin |
+| `bash install.sh --uninstall` | Remove the plugin from the system |
+
+
 ## How it works
 
 KWin effects can register a modifier+scroll-wheel shortcut via `EffectsHandler::registerAxisShortcut()` — the same mechanism the built-in Zoom and Magnifier effects use for their configurable scroll-to-zoom bindings. This plugin registers two axis shortcuts under the `Meta` modifier alone and wires them to KWin's `desktopToRight()` / `desktopToLeft()` navigation.
@@ -13,7 +33,9 @@ KWin effects can register a modifier+scroll-wheel shortcut via `EffectsHandler::
 - KDE Plasma 6 / KWin 6.x on Wayland or X11
 - Debian/Ubuntu/Kali-based distro (package names below match `apt`; adjust for other distros)
 
-## Building
+## Manual Build & Install
+
+> **Prefer the script?** Just run `bash install.sh` — it does all of the below automatically.
 
 Install the build dependencies:
 
@@ -23,16 +45,14 @@ sudo apt install cmake extra-cmake-modules kwin-dev qt6-base-dev qt6-declarative
     libkf6kcmutils-dev libdrm-dev libepoxy-dev libwayland-dev
 ```
 
-Then build:
+Build:
 
 ```bash
-git clone https://github.com/R0h1tAnand/kwin-meta-scroll-switcher.git
-cd kwin-meta-scroll-switcher
 cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build
 ```
 
-## Installing
+Install:
 
 ```bash
 sudo cmake --install build
@@ -65,7 +85,14 @@ qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect kwin_meta_sc
 ## Uninstalling
 
 ```bash
+bash install.sh --uninstall
+```
+
+Or manually:
+
+```bash
 sudo rm /usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/plugins/kwin_meta_scroll_desktop.so
+sudo rm /usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/configs/kwin_meta_scroll_desktop_config.so
 qdbus6 org.kde.KWin /KWin reconfigure
 ```
 
