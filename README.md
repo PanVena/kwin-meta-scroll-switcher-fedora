@@ -1,12 +1,12 @@
 # kwin-meta-scroll-switcher
 
-A KWin effect plugin that switches virtual desktops by holding <kbd>Meta</kbd> and scrolling the mouse wheel — no <kbd>Alt</kbd> required.
+> Switch virtual desktops by holding <kbd>Meta</kbd> and scrolling — no <kbd>Alt</kbd> needed.
 
-KDE Plasma ships a hardcoded <kbd>Meta</kbd>+<kbd>Alt</kbd>+scroll shortcut for this ([`src/virtualdesktops.cpp`](https://invent.kde.org/plasma/kwin/-/blob/master/src/virtualdesktops.cpp)), and it isn't configurable from System Settings. [KDE bug 510707](https://bugs.kde.org/show_bug.cgi?id=510707) tracks making it configurable upstream, but as of writing nobody has picked it up. This plugin adds the <kbd>Meta</kbd>-only binding as a separate, independent effect — it doesn't touch or replace the existing shortcut.
+KDE Plasma hardcodes <kbd>Meta</kbd>+<kbd>Alt</kbd>+scroll ([source](https://invent.kde.org/plasma/kwin/-/blob/master/src/virtualdesktops.cpp)) with no way to configure it ([KDE #510707](https://bugs.kde.org/show_bug.cgi?id=510707)). This plugin adds <kbd>Meta</kbd>-only scrolling as an independent KWin effect without touching the existing shortcut.
 
-## Quick Install
+---
 
-Clone the repo and run the installer — it handles dependencies, the build, and activating the plugin in one shot:
+## Install
 
 ```bash
 git clone https://github.com/R0h1tAnand/kwin-meta-scroll-switcher.git
@@ -14,93 +14,63 @@ cd kwin-meta-scroll-switcher
 bash install.sh
 ```
 
-The script also accepts:
-
-| Command | Effect |
+| Flag | Action |
 |---|---|
-| `bash install.sh` | Install deps, build, install & enable the plugin |
-| `bash install.sh --enable` | Enable without rebuilding |
-| `bash install.sh --disable` | Disable the effect in KWin |
-| `bash install.sh --uninstall` | Remove the plugin from the system |
+| *(none)* | Install deps, build, and enable |
+| `--enable` | Enable without rebuilding |
+| `--disable` | Disable the effect |
+| `--uninstall` | Remove from system |
 
+---
 
-## How it works
+## Manual Build
 
-KWin effects can register a modifier+scroll-wheel shortcut via `EffectsHandler::registerAxisShortcut()` — the same mechanism the built-in Zoom and Magnifier effects use for their configurable scroll-to-zoom bindings. This plugin registers two axis shortcuts under the `Meta` modifier alone and wires them to KWin's `desktopToRight()` / `desktopToLeft()` navigation.
-
-## Requirements
-
-- KDE Plasma 6 / KWin 6.x on Wayland or X11
-- Debian/Ubuntu/Kali-based distro (package names below match `apt`; adjust for other distros)
-
-## Manual Build & Install
-
-> **Prefer the script?** Just run `bash install.sh` — it does all of the below automatically.
-
-Install the build dependencies:
+<details>
+<summary>Expand</summary>
 
 ```bash
+# Dependencies (Debian/Ubuntu/Kali)
 sudo apt install cmake extra-cmake-modules kwin-dev qt6-base-dev qt6-declarative-dev \
     libkf6coreaddons-dev libkf6config-dev libkf6globalaccel-dev libkf6i18n-dev \
     libkf6kcmutils-dev libdrm-dev libepoxy-dev libwayland-dev
-```
 
-Build:
-
-```bash
+# Build & install
 cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build
-```
-
-Install:
-
-```bash
 sudo cmake --install build
 ```
 
-This installs the plugin to `/usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/plugins/`.
-
-## Enabling
-
-Either toggle it on from **System Settings → Apps → Desktop Effects → "Meta+Scroll Desktop Switch"**, or from a terminal:
+Enable via **System Settings → Apps → Desktop Effects → "Meta+Scroll Desktop Switch"**, or:
 
 ```bash
 kwriteconfig6 --file kwinrc --group Plugins --key kwin_meta_scroll_desktopEnabled true
 qdbus6 org.kde.KWin /KWin reconfigure
 ```
 
-## Usage
+</details>
 
-Hold <kbd>Meta</kbd> and scroll over any window (not just the desktop background) to switch virtual desktops.
+---
 
-## Configuration
+## Usage & Configuration
 
-By default, scrolling past the last desktop wraps around to the first (and vice versa). This can be turned off from the effect's settings — click the gear icon next to "Meta+Scroll Desktop Switch" in **System Settings → Apps → Desktop Effects** and uncheck "Wrap around when reaching the first or last desktop", or from a terminal:
+Hold <kbd>Meta</kbd> and scroll over any window to switch desktops.
+
+By default, scrolling wraps around. To disable — open the effect's gear icon in Desktop Effects, or:
 
 ```bash
 kwriteconfig6 --file kwinrc --group Effect-kwin_meta_scroll_desktop --key WrapAroundDesktops false
 qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect kwin_meta_scroll_desktop
 ```
 
-## Uninstalling
+---
 
-```bash
-bash install.sh --uninstall
-```
+## Notes
 
-Or manually:
+- Built against KWin's internal effect ABI — **rebuild after major Plasma upgrades**.
+- Tested on **Plasma/KWin 6.6.5**. Other 6.x versions should work.
 
-```bash
-sudo rm /usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/plugins/kwin_meta_scroll_desktop.so
-sudo rm /usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/configs/kwin_meta_scroll_desktop_config.so
-qdbus6 org.kde.KWin /KWin reconfigure
-```
-
-## Caveats
-
-- Compiled against KWin's internal effect ABI, which is not stable across Plasma releases. Expect to rebuild after major Plasma version upgrades.
-- Tested on Plasma/KWin 6.6.5. Other 6.x versions should work but aren't verified.
+---
 
 ## License
 
-[GPL-2.0-or-later](LICENSE), matching the license of the KWin library this plugin links against.
+[GPL-2.0-or-later](LICENSE)
