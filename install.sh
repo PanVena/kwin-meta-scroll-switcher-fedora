@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Build and install kwin-meta-scroll-desktop
 # Usage: bash install.sh [--uninstall] [--enable] [--disable]
-# Requires: apt-based distro (Debian/Ubuntu/Kali), KDE Plasma 6
+# Requires: Fedora/dnf-based distro, KDE Plasma 6
 
 set -euo pipefail
 
@@ -13,8 +13,15 @@ warn()    { echo -e "${YELLOW}[warn]${NC}  $*"; }
 error()   { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
 PLUGIN_ID="kwin_meta_scroll_desktop"
-PLUGIN_SO="/usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/plugins/${PLUGIN_ID}.so"
-CONFIG_SO="/usr/lib/x86_64-linux-gnu/qt6/plugins/kwin/effects/configs/${PLUGIN_ID}_config.so"
+
+# On Fedora, 64-bit libraries are located in /usr/lib64
+LIB_DIR="/usr/lib64"
+if [ ! -d "$LIB_DIR" ]; then
+    LIB_DIR="/usr/lib"
+fi
+
+PLUGIN_SO="${LIB_DIR}/qt6/plugins/kwin/effects/plugins/${PLUGIN_ID}.so"
+CONFIG_SO="${LIB_DIR}/qt6/plugins/kwin/effects/configs/${PLUGIN_ID}_config.so"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 reconfigure_kwin() {
@@ -69,26 +76,26 @@ esac
 # ── Full install (default) ────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
-echo -e "${CYAN}│  kwin-meta-scroll-desktop  ·  installer          │${NC}"
+echo -e "${CYAN}│  kwin-meta-scroll-desktop  ·  installer         │${NC}"
 echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
 echo ""
 
 # 1. Dependencies
 info "Installing build dependencies…"
-sudo apt-get install -y \
+sudo dnf install -y \
     cmake \
     extra-cmake-modules \
-    kwin-dev \
-    qt6-base-dev \
-    qt6-declarative-dev \
-    libkf6coreaddons-dev \
-    libkf6config-dev \
-    libkf6globalaccel-dev \
-    libkf6i18n-dev \
-    libkf6kcmutils-dev \
-    libdrm-dev \
-    libepoxy-dev \
-    libwayland-dev
+    kwin-devel \
+    qt6-qtbase-devel \
+    qt6-qtdeclarative-devel \
+    kf6-kcoreaddons-devel \
+    kf6-kconfig-devel \
+    kf6-kglobalaccel-devel \
+    kf6-ki18n-devel \
+    kf6-kcmutils-devel \
+    libdrm-devel \
+    libepoxy-devel \
+    wayland-devel
 success "Dependencies satisfied."
 
 # 2. Build
@@ -96,7 +103,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/build"
 
 info "Configuring with CMake…"
-cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" -DCMAKE_INSTALL_PREFIX=/usr
+# Specify libdir explicitly so CMake builds the plugin in the correct location (lib64)
+cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" -DCMAKE_INSTALL_PREFIX=/usr -DKDE_INSTALL_LIBDIR=lib64
 
 info "Building…"
 cmake --build "$BUILD_DIR" --parallel "$(nproc)"
@@ -105,7 +113,7 @@ success "Build complete."
 # 3. Install
 info "Installing (requires sudo)…"
 sudo cmake --install "$BUILD_DIR"
-success "Plugin installed to /usr/lib/.../kwin/effects/plugins/"
+success "Plugin installed."
 
 # 4. Enable
 info "Enabling plugin in KWin…"
