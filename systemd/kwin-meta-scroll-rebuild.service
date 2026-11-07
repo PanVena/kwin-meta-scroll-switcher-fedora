@@ -1,0 +1,14 @@
+[Unit]
+Description=Rebuild the Meta+Scroll KWin effect after KWin updates
+After=local-fs.target
+# Finish before the login screen so KWin finds a matching plugin. This is ordering
+# only: a failed build does not stop the display manager from starting.
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/kwin-meta-scroll-rebuild
+TimeoutStartSec=600
+
+[Install]
+WantedBy=graphical.target

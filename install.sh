@@ -23,15 +23,25 @@ fi
 PLUGIN_SO="${LIB_DIR}/qt6/plugins/kwin/effects/plugins/${PLUGIN_ID}.so"
 CONFIG_SO="${LIB_DIR}/qt6/plugins/kwin/effects/configs/${PLUGIN_ID}_config.so"
 
+# Auto-rebuild after KWin updates (see systemd/)
+REBUILD_UNIT="kwin-meta-scroll-rebuild.service"
+REBUILD_UNIT_PATH="/etc/systemd/system/${REBUILD_UNIT}"
+REBUILD_BIN="/usr/local/bin/kwin-meta-scroll-rebuild"
+REBUILD_ACTIONS="/etc/dnf/libdnf5-plugins/actions.d/kwin-meta-scroll-rebuild.actions"
+REBUILD_SRC="/usr/local/src/kwin-meta-scroll-desktop"
+REBUILD_STATE="/var/lib/kwin-meta-scroll-desktop"
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
-reconfigure_kwin() {
-    if command -v qdbus6 &>/dev/null; then
-        qdbus6 org.kde.KWin /KWin reconfigure 2>/dev/null || true
-    elif command -v qdbus &>/dev/null; then
-        qdbus org.kde.KWin /KWin reconfigure 2>/dev/null || true
-    else
-        warn "qdbus not found — restart KWin manually to apply changes."
-    fi
+effects_call() {
+    busctl --user call org.kde.KWin /Effects org.kde.kwin.Effects "$1" s "$PLUGIN_ID" \
+        >/dev/null 2>&1 || true
+}
+
+# KWin's reconfigure does not load a newly enabled effect, so ask for it by name.
+# Unloading first makes a rebuild take effect when the old one is still loaded.
+load_effect() {
+    effects_call unloadEffect
+    effects_call loadEffect
 }
 
 # ── Modes ─────────────────────────────────────────────────────────────────────
@@ -39,8 +49,12 @@ case "${1:-}" in
 
     --uninstall)
         info "Uninstalling ${PLUGIN_ID}…"
+        effects_call unloadEffect
+        sudo systemctl disable "$REBUILD_UNIT" 2>/dev/null || true
+        sudo rm -f "$REBUILD_UNIT_PATH" "$REBUILD_BIN" "$REBUILD_ACTIONS"
+        sudo rm -rf "$REBUILD_SRC" "$REBUILD_STATE"
+        sudo systemctl daemon-reload
         sudo rm -f "$PLUGIN_SO" "$CONFIG_SO"
-        reconfigure_kwin
         success "Plugin removed."
         exit 0
         ;;
@@ -48,7 +62,7 @@ case "${1:-}" in
     --enable)
         info "Enabling ${PLUGIN_ID}…"
         kwriteconfig6 --file kwinrc --group Plugins --key "${PLUGIN_ID}Enabled" true
-        reconfigure_kwin
+        load_effect
         success "Plugin enabled. Hold Meta and scroll to switch desktops."
         exit 0
         ;;
@@ -56,7 +70,7 @@ case "${1:-}" in
     --disable)
         info "Disabling ${PLUGIN_ID}…"
         kwriteconfig6 --file kwinrc --group Plugins --key "${PLUGIN_ID}Enabled" false
-        reconfigure_kwin
+        effects_call unloadEffect
         success "Plugin disabled."
         exit 0
         ;;
@@ -64,7 +78,7 @@ case "${1:-}" in
     --help|-h)
         echo "Usage: bash install.sh [option]"
         echo ""
-        echo "  (no args)    Install deps, build, and install the plugin"
+        echo "  (no args)    Install deps, build, install the plugin and its auto-rebuild service"
         echo "  --enable     Enable the plugin in KWin"
         echo "  --disable    Disable the plugin in KWin"
         echo "  --uninstall  Remove the plugin from the system"
@@ -95,7 +109,8 @@ sudo dnf install -y \
     kf6-kcmutils-devel \
     libdrm-devel \
     libepoxy-devel \
-    wayland-devel
+    wayland-devel \
+    libdnf5-plugin-actions
 success "Dependencies satisfied."
 
 # 2. Build
@@ -112,13 +127,29 @@ success "Build complete."
 
 # 3. Install
 info "Installing (requires sudo)…"
+# Unlink first: cmake overwrites in place, which would crash a KWin that has the
+# old plugin mapped. An unlinked file stays valid for the running process.
+sudo rm -f "$PLUGIN_SO" "$CONFIG_SO"
 sudo cmake --install "$BUILD_DIR"
 success "Plugin installed."
 
-# 4. Enable
+# 4. Auto-rebuild after KWin updates
+info "Setting up automatic rebuild after KWin updates…"
+sudo rm -rf "$REBUILD_SRC"
+sudo mkdir -p "$REBUILD_SRC" "$REBUILD_STATE"
+sudo cp -r "${SCRIPT_DIR}/CMakeLists.txt" "${SCRIPT_DIR}/src" "$REBUILD_SRC/"
+sudo install -D -m 755 "${SCRIPT_DIR}/systemd/kwin-meta-scroll-rebuild.sh" "$REBUILD_BIN"
+sudo install -m 644 "${SCRIPT_DIR}/systemd/${REBUILD_UNIT}" "$REBUILD_UNIT_PATH"
+sudo install -D -m 644 "${SCRIPT_DIR}/systemd/kwin-meta-scroll-rebuild.actions" "$REBUILD_ACTIONS"
+rpm -q kwin | sudo tee "${REBUILD_STATE}/built-for" >/dev/null
+sudo systemctl daemon-reload
+sudo systemctl enable "$REBUILD_UNIT"
+success "Auto-rebuild enabled."
+
+# 5. Enable
 info "Enabling plugin in KWin…"
 kwriteconfig6 --file kwinrc --group Plugins --key "${PLUGIN_ID}Enabled" true
-reconfigure_kwin
+load_effect
 
 echo ""
 success "Done! Hold Meta and scroll to switch virtual desktops."

@@ -1,0 +1,3 @@
+# Rebuild in the background as soon as a dnf transaction updates KWin, so the
+# effect is ready at the next login rather than the next boot.
+post_transaction:kwin:in:enabled=host-only:/usr/bin/systemctl start --no-block kwin-meta-scroll-rebuild.service

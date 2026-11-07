@@ -16,7 +16,7 @@ bash install.sh
 
 | Flag | Action |
 |---|---|
-| *(none)* | Install deps, build, and enable |
+| *(none)* | Install deps, build, enable, and set up auto-rebuild |
 | `--enable` | Enable without rebuilding |
 | `--disable` | Disable the effect |
 | `--uninstall` | Remove from system |
@@ -44,7 +44,7 @@ Enable via **System Settings → Apps → Desktop Effects → "Meta+Scroll Deskt
 
 ```bash
 kwriteconfig6 --file kwinrc --group Plugins --key kwin_meta_scroll_desktopEnabled true
-qdbus6 org.kde.KWin /KWin reconfigure
+busctl --user call org.kde.KWin /Effects org.kde.kwin.Effects loadEffect s kwin_meta_scroll_desktop
 ```
 
 </details>
@@ -59,15 +59,15 @@ By default, scrolling wraps around. To disable — open the effect's gear icon i
 
 ```bash
 kwriteconfig6 --file kwinrc --group Effect-kwin_meta_scroll_desktop --key WrapAroundDesktops false
-qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.reconfigureEffect kwin_meta_scroll_desktop
+busctl --user call org.kde.KWin /Effects org.kde.kwin.Effects reconfigureEffect s kwin_meta_scroll_desktop
 ```
 
 ---
 
 ## Notes
 
-- Built against KWin's internal effect ABI — **rebuild after major Plasma upgrades**.
-- Tested on **Plasma/KWin 6.6.5**. Other 6.x versions should work.
+- KWin only loads effects built for its exact version, so **every Plasma update needs a rebuild**. `install.sh` sets this up: `dnf` updates rebuild in the background and apply at the next login, and Discover updates rebuild during the boot after updating, which takes a little longer. If the effect does not return, check `journalctl -b -u kwin-meta-scroll-rebuild`.
+- Tested on **Plasma/KWin 6.8.2**. Other 6.x versions should work.
 
 ---
 
