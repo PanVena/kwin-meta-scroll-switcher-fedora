@@ -50,8 +50,10 @@ case "${1:-}" in
     --uninstall)
         info "Uninstalling ${PLUGIN_ID}…"
         effects_call unloadEffect
+        sudo systemctl disable --now kwin-meta-scroll-slide.timer 2>/dev/null || true
+        sudo systemctl stop kwin-meta-scroll-slide.service 2>/dev/null || true
         sudo systemctl disable "$REBUILD_UNIT" 2>/dev/null || true
-        sudo rm -f "$REBUILD_UNIT_PATH" "$REBUILD_BIN" "$REBUILD_ACTIONS"
+        sudo rm -f /etc/systemd/system/kwin-meta-scroll-slide.{timer,service} "$REBUILD_UNIT_PATH" "$REBUILD_BIN" "$REBUILD_ACTIONS"
         sudo rm -rf "$REBUILD_SRC" "$REBUILD_STATE"
         sudo systemctl daemon-reload
         sudo rm -f "$PLUGIN_SO" "$CONFIG_SO"
@@ -78,7 +80,7 @@ case "${1:-}" in
     --help|-h)
         echo "Usage: bash install.sh [option]"
         echo ""
-        echo "  (no args)    Install deps, build, install the plugin and its auto-rebuild service"
+        echo "  (no args)    Install deps, build, install the plugin, its auto-rebuild service and the compatible Slide fix"
         echo "  --enable     Enable the plugin in KWin"
         echo "  --disable    Disable the plugin in KWin"
         echo "  --uninstall  Remove the plugin from the system"
@@ -115,6 +117,10 @@ success "Dependencies satisfied."
 
 # 2. Build
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+info "Checking the Slide animation fix against the installed Fedora KWin sources…"
+sudo dnf install -y rpm-build redhat-rpm-config cpio patch dnf5-plugins
+slide_version="$(rpm -q kwin)"
+bash "$SCRIPT_DIR/scripts/install-slide-fix.sh"
 BUILD_DIR="${SCRIPT_DIR}/build"
 
 info "Configuring with CMake…"
@@ -137,12 +143,15 @@ success "Plugin installed."
 info "Setting up automatic rebuild after KWin updates…"
 sudo rm -rf "$REBUILD_SRC"
 sudo mkdir -p "$REBUILD_SRC" "$REBUILD_STATE"
-sudo cp -r "${SCRIPT_DIR}/CMakeLists.txt" "${SCRIPT_DIR}/src" "$REBUILD_SRC/"
+sudo cp -r "${SCRIPT_DIR}/CMakeLists.txt" "${SCRIPT_DIR}/src" "${SCRIPT_DIR}/scripts" "${SCRIPT_DIR}/patches" "$REBUILD_SRC/"
 sudo install -D -m 755 "${SCRIPT_DIR}/systemd/kwin-meta-scroll-rebuild.sh" "$REBUILD_BIN"
 sudo install -m 644 "${SCRIPT_DIR}/systemd/${REBUILD_UNIT}" "$REBUILD_UNIT_PATH"
 sudo install -D -m 644 "${SCRIPT_DIR}/systemd/kwin-meta-scroll-rebuild.actions" "$REBUILD_ACTIONS"
 rpm -q kwin | sudo tee "${REBUILD_STATE}/built-for" >/dev/null
+printf '%s\n' "$slide_version" | sudo tee "$REBUILD_STATE/slide-checked-for" >/dev/null
+sudo install -m 644 "$SCRIPT_DIR"/systemd/kwin-meta-scroll-slide.{service,timer} /etc/systemd/system/
 sudo systemctl daemon-reload
+sudo systemctl enable --now kwin-meta-scroll-slide.timer
 sudo systemctl enable "$REBUILD_UNIT"
 success "Auto-rebuild enabled."
 
@@ -152,7 +161,8 @@ kwriteconfig6 --file kwinrc --group Plugins --key "${PLUGIN_ID}Enabled" true
 load_effect
 
 echo ""
-success "Done! Hold Meta and scroll to switch virtual desktops."
+success "Installation complete."
+info "Please log out of Plasma and log back in to use the updated effects."
 echo -e "  ${YELLOW}Tip:${NC} Run  bash install.sh --disable   to disable without uninstalling."
 echo -e "  ${YELLOW}Tip:${NC} Run  bash install.sh --uninstall to remove it completely."
 echo ""

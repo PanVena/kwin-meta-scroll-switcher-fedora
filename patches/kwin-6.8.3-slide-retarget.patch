@@ -1,0 +1,63 @@
+--- a/src/plugins/slide/slide.cpp
++++ b/src/plugins/slide/slide.cpp
+@@ -161,17 +161,19 @@
+     // Clipping
+     m_paintCtx.visibleDesktops.clear();
+     m_paintCtx.visibleDesktops.reserve(4); // 4 - maximum number of visible desktops
+-    bool includedX = false, includedY = false;
++    const QPointF clipPosition = effects->optionRollOverDesktops()
++        ? constrainToDrawableRange(forcePositivePosition(m_paintCtx.position)) : m_paintCtx.position;
+     for (VirtualDesktop *desktop : desktops) {
++        bool includedX = false, includedY = false;
+         const QPoint coords = effects->desktopGridCoords(desktop);
+-        if (coords.x() % w == (int)(m_paintCtx.position.x()) % w) {
++        if (coords.x() % w == (int)(clipPosition.x()) % w) {
+             includedX = true;
+-        } else if (coords.x() % w == ((int)(m_paintCtx.position.x()) + 1) % w) {
++        } else if (coords.x() % w == ((int)(clipPosition.x()) + 1) % w) {
+             includedX = true;
+         }
+-        if (coords.y() % h == (int)(m_paintCtx.position.y()) % h) {
++        if (coords.y() % h == (int)(clipPosition.y()) % h) {
+             includedY = true;
+-        } else if (coords.y() % h == ((int)(m_paintCtx.position.y()) + 1) % h) {
++        } else if (coords.y() % h == ((int)(clipPosition.y()) + 1) % h) {
+             includedY = true;
+         }
+ 
+@@ -375,13 +377,24 @@
+         prepareSwitching();
+     }
+ 
++    const bool retargeting = m_state == State::ActiveAnimation;
+     m_state = State::ActiveAnimation;
+     m_movingWindow = movingWindow;
+ 
++    const QPointF previousTarget = m_endPos;
+     m_startPos = oldPos;
+     m_endPos = effects->desktopGridCoords(current);
+     if (effects->optionRollOverDesktops()) {
++        // Resolve each desktop change relative to its logical predecessor.
++        // The spring can still be several desktops behind during a wheel burst.
++        if (retargeting) {
++            m_startPos = constrainToDrawableRange(forcePositivePosition(previousTarget));
++        }
+         optimizePath();
++        if (retargeting) {
++            m_endPos = previousTarget + (m_endPos - m_startPos);
++            m_startPos = oldPos;
++        }
+     }
+ 
+     const QSize virtualSpaceSize = effects->virtualScreenSize();
+@@ -389,7 +402,9 @@
+     m_motionX.setPosition(m_startPos.x() * virtualSpaceSize.width());
+     m_motionY.setAnchor(m_endPos.y() * virtualSpaceSize.height());
+     m_motionY.setPosition(m_startPos.y() * virtualSpaceSize.height());
+-    m_clock.reset();
++    if (!retargeting) {
++        m_clock.reset();
++    }
+ 
+     effects->addRepaint(m_screen->geometry());
+ }

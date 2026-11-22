@@ -1,0 +1,10 @@
+[Unit]
+Description=Check and rebuild the Slide fix for the installed Fedora KWin
+Wants=network-online.target
+After=network-online.target kwin-meta-scroll-rebuild.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/local/src/kwin-meta-scroll-desktop/scripts/install-slide-fix.sh --after-update
+TimeoutStartSec=infinity
+Nice=10

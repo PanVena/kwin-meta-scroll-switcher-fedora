@@ -1,0 +1,9 @@
+[Unit]
+Description=Check the KWin Slide fix after boot and retry failed checks
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1d
+
+[Install]
+WantedBy=timers.target

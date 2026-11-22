@@ -15,6 +15,9 @@ public:
     static bool supported();
 
     void reconfigure(ReconfigureFlags flags) override;
+
+private:
+    void requestSwitch(bool forward);
 };
 
 } // namespace KWin

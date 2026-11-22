@@ -16,12 +16,14 @@ bash install.sh
 
 | Flag | Action |
 |---|---|
-| *(none)* | Install deps, build, enable, and set up auto-rebuild |
+| *(none)* | Install the plugin and auto-rebuild service. Check the Fedora KWin sources and rebuild with the Slide fix when the patch applies. |
 | `--enable` | Enable without rebuilding |
 | `--disable` | Disable the effect |
 | `--uninstall` | Remove from system |
 
 ---
+
+The Slide patch was developed against KWin 6.8.3. The installer checks the prepared sources of the installed Fedora release. It skips the KWin rebuild when the patch is already present or when the affected code has changed enough to require review. Allow time and disk space for a full KWin build. Log out and back in to activate the updated Slide animation. Fedora updates can replace the patched packages. A background service checks Slide after DNF updates and after boot for offline updates. It skips releases already checked and retries failed checks daily. See `journalctl -u kwin-meta-scroll-slide.service` for the result. Uninstalling removes the plugin and its update services. To restore the stock animation, reinstall the matching official KWin packages from Fedora.
 
 ## Manual Build
 
